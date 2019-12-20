@@ -12,7 +12,11 @@ document.addEventListener('DOMContentLoaded', () => {
           modalOrder = document.getElementById('order_read'),
           modalOrderActive = document.getElementById('order_active');
 
-    const orders = [];
+    const orders = JSON.parse(localStorage.getItem('freeOrders')) || [];
+
+    const toStorage = () => {
+        localStorage.setItem('freeOrders', JSON.stringify(orders));
+    }
 
     const renderOrders = () => {
       
@@ -21,7 +25,8 @@ document.addEventListener('DOMContentLoaded', () => {
         orders.forEach((order, i) => {
            console.log(order); 
         ordersTable.innerHTML += `
-        <tr class="order" data-number-order="${i}">
+        <tr class="order ${order.active ? 'taken' : ''}" 
+        data-number-order="${i}">
             <td>${i + 1}</td>
             <td>${order.title}</td>
             <td class= ${order.currency}></td>
@@ -30,24 +35,69 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     };
 
+    const handlerModal = (event) => {
+        const target = event.target;
+        const modal = target.closest('.order-modal');
+        const order = orders[modal.id];
+
+        const baseAction = () => {
+            modal.style.display = 'none';
+            toStorage();
+            renderOrders();
+        }
+
+        if (target.closest('.close') || target === modal ) {
+            modal.style.display = 'none';
+        }
+        
+        if (target.classList.contains('get-order')) {
+            order.active = true;
+            baseAction();
+        }
+        if (target.id === 'capitulation') {
+            order.active = false;
+           baseAction();
+        }
+        if (target.id === 'ready') {
+            orders.splice(orders.indexOf(order), 1);
+            baseAction();
+        }
+    }
+
     const openModal = (numberOrder) => {
         const order = orders[numberOrder];
-        const modal = order.active ? modalOrderActive : modalOrder;
         
-        const firstNameBlock = document.querySelector('.firstName'),
-              titleBlock = document.querySelector('.modal-title'),
-              emaiBlock = document.querySelector('.email'),
-              descriptionBlock = document.querySelector('.description'),
-              deadlineBlock = document.querySelector('.deadline'),
-              currencyBlock = document.querySelector('currency_img'),
-              countBlock = document.querySelector('count'),
-              phoneBlock = document.querySelector('.phone');
+        const { title, firstName, email, phone, description,
+             amount, currency, deadline, active = false } = order;
 
-            //   titleBlock.textContent = order.title;
-            //   emailBlock.textContent = order.email;   
+        const modal = active ? modalOrderActive : modalOrder;
 
-        modal.style.display = 'block';
-    }
+        const firstNameBlock = modal.querySelector('.firstName'),
+              titleBlock = modal.querySelector('.modal-title'),
+              emailBlock = modal.querySelector('.email'),
+              descriptionBlock = modal.querySelector('.description'),
+              deadlineBlock = modal.querySelector('.deadline'),
+              currencyBlock = modal.querySelector('.currency_img'),
+              countBlock = modal.querySelector('.count'),
+              phoneBlock = modal.querySelector('.phone');
+
+
+              modal.id = numberOrder;
+              titleBlock.textContent = title;
+              firstNameBlock.textContent = firstName;
+              emailBlock.textContent = email;
+              emailBlock.href = 'mailto:' + email;
+              descriptionBlock.textContent = description;
+              deadlineBlock.textContent = deadline;
+              currencyBlock.className = 'currency_img';
+              currencyBlock.classList.add(currency);
+              countBlock.textContent = amount;
+              phoneBlock ? phoneBlock.href = 'tel:' + phone : ' ';    
+
+        modal.style.display = 'flex';
+
+        modal.addEventListener('click', handlerModal);
+    };
 
     ordersTable.addEventListener('click', event => {
         const target = event.target;
@@ -101,7 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
         orders.push(obj);
-
+        toStorage();
     });
 
 
